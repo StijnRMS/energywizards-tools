@@ -426,6 +426,89 @@ HTML = r"""<!DOCTYPE html>
   }
   @keyframes spin { to { transform:rotate(360deg); } }
 
+  /* ── CLUE INPUT ROW ── */
+  .clue-row {
+    display:flex; align-items:center; gap:.5rem;
+    padding:.45rem 1.25rem .3rem; border-top:1px solid #f1f5f9;
+    background:#fafafa;
+  }
+  .clue-row label { font-size:.71rem; color:#94a3b8; font-weight:700;
+    white-space:nowrap; text-transform:uppercase; letter-spacing:.4px; }
+  .clue-input {
+    flex:1; border:1.5px solid #e2e8f0; border-radius:8px;
+    padding:.32rem .7rem; font-size:.8rem; color:#334155;
+    outline:none; transition:border-color .15s; background:#fff;
+  }
+  .clue-input:focus { border-color:#0f766e; }
+  .clue-input.has-value { border-color:#7c3aed; background:#faf5ff; }
+  .btn-search-one {
+    border:1.5px solid #7c3aed; background:#f5f3ff; color:#7c3aed;
+    border-radius:999px; padding:.3rem .85rem; font-size:.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; display:inline-flex; align-items:center; gap:.3rem;
+    transition:all .15s;
+  }
+  .btn-search-one:hover { background:#7c3aed; color:#fff; }
+  .btn-search-one.searching { opacity:.55; cursor:wait; }
+
+  /* ── INVOICE PICKER DROPDOWN ── */
+  .picker-wrap {
+    position:relative; display:flex; align-items:center; gap:.5rem;
+    padding:.35rem 1.25rem .5rem; background:#fafafa;
+  }
+  .picker-wrap label { font-size:.71rem; color:#94a3b8; font-weight:700;
+    white-space:nowrap; text-transform:uppercase; letter-spacing:.4px; }
+  .picker-trigger {
+    flex:1; border:1.5px solid #e2e8f0; border-radius:8px;
+    padding:.32rem .75rem; font-size:.8rem; color:#334155; background:#fff;
+    cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+    transition:border-color .15s; user-select:none;
+  }
+  .picker-trigger:hover { border-color:#0f766e; }
+  .picker-trigger.selected { border-color:#0f766e; background:#f0fdf4; font-weight:600; }
+  .picker-trigger .chevron { color:#94a3b8; font-size:.7rem; margin-left:.4rem; }
+
+  .picker-dropdown {
+    position:absolute; top:100%; left:1.25rem; right:0;
+    background:#fff; border:1.5px solid #e2e8f0; border-radius:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,.14); z-index:200;
+    max-height:280px; overflow:hidden; display:none; flex-direction:column;
+  }
+  .picker-dropdown.open { display:flex; }
+  .picker-search {
+    border:none; border-bottom:1px solid #f1f5f9; padding:.6rem .85rem;
+    font-size:.82rem; outline:none; color:#334155; background:#f8fafc;
+    border-radius:10px 10px 0 0;
+  }
+  .picker-list { overflow-y:auto; max-height:220px; }
+  .picker-item {
+    padding:.55rem .85rem; cursor:pointer; font-size:.8rem;
+    border-bottom:1px solid #f8fafc; transition:background .1s;
+    display:grid; grid-template-columns:1fr auto; gap:.3rem;
+  }
+  .picker-item:hover { background:#f0fdf4; }
+  .picker-item.active { background:#dcfce7; }
+  .picker-item .pi-name { font-weight:600; color:#1e293b; }
+  .picker-item .pi-partner { font-size:.72rem; color:#64748b; }
+  .picker-item .pi-amt { font-weight:700; color:#0f766e; text-align:right; }
+  .picker-item .pi-due { font-size:.68rem; color:#94a3b8; text-align:right; }
+  .picker-empty { padding:1.2rem; text-align:center; color:#9ca3af; font-size:.8rem; }
+  .picker-clear {
+    border:none; background:none; color:#94a3b8; font-size:.75rem;
+    cursor:pointer; padding:.25rem .5rem; border-radius:6px;
+    display:inline-flex; align-items:center; gap:.25rem;
+  }
+  .picker-clear:hover { color:var(--ew-red); background:#fff5f5; }
+
+  /* ── BULK SEARCH BUTTON ── */
+  .btn-bulk-search {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color:#fff; border:none; border-radius:999px;
+    padding:.55rem 1.25rem; font-size:.85rem; font-weight:700;
+    cursor:pointer; display:inline-flex; align-items:center; gap:.45rem;
+    transition:opacity .2s;
+  }
+  .btn-bulk-search:disabled { opacity:.35; cursor:not-allowed; }
+
   /* ── EMPTY STATE ── */
   .empty-state { text-align:center; padding:5rem 2rem; color:#9ca3af; }
   .empty-state i { font-size:3rem; margin-bottom:1rem; }
@@ -496,19 +579,29 @@ HTML = r"""<!DOCTYPE html>
 <!-- APPLY BAR -->
 <div class="apply-bar">
   <div class="summary" id="bar-summary">Select reconciliations above, then click Apply.</div>
-  <button class="btn-apply" id="btn-apply" onclick="applyReconciliations()" disabled>
-    <span class="spinner" id="apply-spinner"></span>
-    <i class="fa-solid fa-link" id="apply-icon"></i>
-    Apply approved reconciliations
-  </button>
+  <div style="display:flex;gap:.6rem;align-items:center">
+    <button class="btn-bulk-search" id="btn-bulk-search" onclick="bulkSearchAgain()" disabled>
+      <span class="spinner" id="bulk-spinner"></span>
+      <i class="fa-solid fa-magnifying-glass" id="bulk-icon"></i>
+      Bulk Search Again
+    </button>
+    <button class="btn-apply" id="btn-apply" onclick="applyReconciliations()" disabled>
+      <span class="spinner" id="apply-spinner"></span>
+      <i class="fa-solid fa-link" id="apply-icon"></i>
+      Apply approved
+    </button>
+  </div>
 </div>
 
 <script>
 // ── STATE ────────────────────────────────────────────────────────────────────
-let DATA       = null;      // full API response
-let decisions  = {};        // { bl_id: 'yes' | 'no' | null }
-let applied    = {};        // { bl_id: { ok, error } }
+let DATA         = null;   // full API response
+let decisions    = {};     // { bl_id: 'yes' | 'no' | null }
+let applied      = {};     // { bl_id: { ok, error } }
+let clues        = {};     // { bl_id: "clue text" }
+let manualPicks  = {};     // { bl_id: match-object } — manually selected invoice
 let activeFilter = 'all';
+let openPicker   = null;   // bl_id of currently open dropdown (only one at a time)
 
 // ── BOOTSTRAP ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', loadData);
@@ -533,10 +626,17 @@ async function triggerRefresh() {
   document.getElementById('cards-wrap').style.display = 'none';
   document.getElementById('stats-bar').style.display  = 'none';
   document.getElementById('filter-row').style.display = 'none';
-  decisions = {}; applied = {};
+  decisions = {}; applied = {}; clues = {}; manualPicks = {};
   await fetch('/api/refresh', {method:'POST'});
   await loadData();
 }
+
+// Close any open picker when clicking outside
+document.addEventListener('click', e => {
+  if (openPicker !== null && !e.target.closest('.picker-wrap')) {
+    closePicker(openPicker);
+  }
+});
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
 function renderAll() {
@@ -611,7 +711,8 @@ function renderCards() {
       </div>`;
     }
 
-    // Action row
+    // Action row — manual pick takes priority over auto match
+    const effectiveMatch = manualPicks[id] || topMatch;
     let actionHtml = '';
     if (app) {
       if (app.ok) {
@@ -621,23 +722,68 @@ function renderCards() {
           <a class="btn-odoo" href="${app.odoo_url||'#'}" target="_blank">Open in Odoo</a>`;
       }
     } else {
-      const yesActive = decision === 'yes' ? 'active' : '';
-      const noActive  = decision === 'no'  ? 'active' : '';
-      const yesDisabled = !topMatch ? 'disabled style="opacity:.35;cursor:not-allowed"' : '';
+      const yesActive   = decision === 'yes' ? 'active' : '';
+      const noActive    = decision === 'no'  ? 'active' : '';
+      const canReconcile = !!effectiveMatch;
+      const yesDisabled = !canReconcile ? 'disabled style="opacity:.35;cursor:not-allowed"' : '';
+      const manualLabel = manualPicks[id] ? ' <span style="font-size:.65rem;opacity:.7">(manual)</span>' : '';
 
       actionHtml = `
         <a class="btn-odoo" href="${odooLineUrl(id)}" target="_blank">
           <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Odoo
         </a>
-        <button class="btn-reconcile btn-no ${noActive}" ${topMatch?'':''}
+        <button class="btn-reconcile btn-no ${noActive}"
           onclick="setDecision('${id}','no')">
           <i class="fa-solid fa-xmark"></i> Skip
         </button>
         <button class="btn-reconcile btn-yes ${yesActive}" ${yesDisabled}
-          onclick="${topMatch ? `setDecision('${id}','yes')` : ''}">
-          <i class="fa-solid fa-check"></i> Reconcile
+          onclick="${canReconcile ? `setDecision('${id}','yes')` : ''}">
+          <i class="fa-solid fa-check"></i> Reconcile${manualLabel}
         </button>`;
     }
+
+    // ── Clue row ──────────────────────────────────────────────
+    const clueVal = clues[id] || '';
+    const clueRow = app ? '' : `
+      <div class="clue-row">
+        <label><i class="fa-solid fa-lightbulb"></i> Clue</label>
+        <input class="clue-input ${clueVal ? 'has-value' : ''}"
+               id="clue-${id}"
+               placeholder="Type name, invoice #, ref, amount… then press Enter or Search"
+               value="${clueVal.replace(/"/g,'&quot;')}"
+               oninput="setClue('${id}', this.value)"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();searchOne('${id}');}">
+        <button class="btn-search-one" id="sbtn-${id}" onclick="searchOne('${id}')">
+          <i class="fa-solid fa-magnifying-glass"></i> Search
+        </button>
+      </div>`;
+
+    // ── Invoice picker row ────────────────────────────────────
+    const manualMatch = manualPicks[id] || null;
+    const pickerLabel = manualMatch
+      ? `<span style="color:#0f766e">${manualMatch.inv_name || '(draft)'} — ${manualMatch.inv_partner} — €${manualMatch.inv_residual.toLocaleString('nl-BE',{minimumFractionDigits:2})}</span>`
+      : `<span style="color:#94a3b8">Select invoice manually…</span>`;
+    const clearBtn = manualMatch
+      ? `<button class="picker-clear" onclick="clearPicker('${id}');event.stopPropagation()"><i class="fa-solid fa-xmark"></i></button>`
+      : '';
+    const pickerRow = app ? '' : `
+      <div class="picker-wrap" id="pwrap-${id}">
+        <label><i class="fa-solid fa-file-invoice"></i> Invoice</label>
+        <div class="picker-trigger ${manualMatch ? 'selected' : ''}"
+             id="ptrigger-${id}"
+             onclick="togglePicker('${id}', ${s.bl_amt >= 0 ? "'out_invoice'" : "'in_invoice'"})">
+          ${pickerLabel}
+          <span class="chevron"><i class="fa-solid fa-chevron-down"></i></span>
+        </div>
+        ${clearBtn}
+        <div class="picker-dropdown" id="pdrop-${id}">
+          <input class="picker-search" id="psearch-${id}"
+                 placeholder="Search invoice, partner, amount…"
+                 oninput="filterPicker('${id}', this.value, ${s.bl_amt >= 0 ? "'out_invoice'" : "'in_invoice'"})"
+                 onclick="event.stopPropagation()">
+          <div class="picker-list" id="plist-${id}"></div>
+        </div>
+      </div>`;
 
     html += `
     <div class="recon-card ${cardClass}" id="card-${id}" data-conf="${confClass}" data-decision="${decision||''}">
@@ -662,6 +808,8 @@ function renderCards() {
         <!-- INVOICE SIDE -->
         <div>${invHtml}</div>
       </div>
+      ${clueRow}
+      ${pickerRow}
       <div class="actions-row">${actionHtml}</div>
     </div>`;
   }
@@ -721,16 +869,25 @@ function updateStats() {
 }
 
 function updateApplyBar() {
-  const approved = Object.entries(decisions).filter(([,v])=>v==='yes');
-  const skipped  = Object.entries(decisions).filter(([,v])=>v==='no');
-  const btn  = document.getElementById('btn-apply');
-  const summ = document.getElementById('bar-summary');
+  const approved    = Object.entries(decisions).filter(([,v])=>v==='yes');
+  const skipped     = Object.entries(decisions).filter(([,v])=>v==='no');
+  const hasClues    = Object.values(clues).some(v => v && v.trim());
+  const hasUnmatched= DATA && DATA.suggestions.some(
+    s => !s.matches.length || s.matches[0].score < 40);
+  const manualCount = Object.keys(manualPicks).length;
+
+  const btnApply = document.getElementById('btn-apply');
+  const btnBulk  = document.getElementById('btn-bulk-search');
+  const summ     = document.getElementById('bar-summary');
+
+  if (btnApply) btnApply.disabled = !approved.length;
+  if (btnBulk)  btnBulk.disabled  = !(hasClues || hasUnmatched);
+
   if (approved.length) {
-    summ.textContent = `${approved.length} approved · ${skipped.length} skipped`;
-    btn.disabled = false;
+    const manualNote = manualCount ? ` · ${manualCount} manual pick${manualCount>1?'s':''}` : '';
+    summ.textContent = `${approved.length} approved · ${skipped.length} skipped${manualNote}`;
   } else {
-    summ.textContent = 'Select reconciliations above, then click Apply.';
-    btn.disabled = true;
+    summ.textContent = 'Use clue + Search, or pick invoice from dropdown, then Reconcile.';
   }
 }
 
@@ -738,14 +895,10 @@ function updateApplyBar() {
 async function applyReconciliations() {
   const items = [];
   for (const s of DATA.suggestions) {
-    if (decisions[s.bl_id] === 'yes' && s.matches.length) {
-      const m = s.matches[0];
-      items.push({
-        bl_id:     s.bl_id,
-        inv_id:    m.inv_id,
-        direction: m.direction,
-      });
-    }
+    if (decisions[s.bl_id] !== 'yes') continue;
+    // Manual pick takes priority
+    const m = manualPicks[s.bl_id] || (s.matches.length ? s.matches[0] : null);
+    if (m) items.push({ bl_id: s.bl_id, inv_id: m.inv_id, direction: m.direction });
   }
   if (!items.length) return;
 
@@ -781,6 +934,218 @@ async function applyReconciliations() {
   }
 }
 
+// ── CLUE & SEARCH ─────────────────────────────────────────────────────────────
+function setClue(id, val) {
+  clues[id] = val;
+  const inp = document.getElementById(`clue-${id}`);
+  if (inp) inp.classList.toggle('has-value', !!val.trim());
+  updateApplyBar();
+}
+
+async function searchOne(id) {
+  const clue = (clues[id] || '').trim();
+  if (!clue) return;
+  const s = DATA.suggestions.find(x => String(x.bl_id) === String(id));
+  if (!s) return;
+
+  const btn = document.getElementById(`sbtn-${id}`);
+  if (btn) { btn.classList.add('searching'); btn.disabled = true; }
+
+  try {
+    const direction = s.bl_amt >= 0 ? 'out_invoice' : 'in_invoice';
+    const r = await fetch('/api/search', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({items:[{bl_id:id, clue, bl_amt:s.bl_amt, direction}]})
+    });
+    const res = await r.json();
+    const updated = res.results?.[String(id)];
+    if (updated && updated.matches && updated.matches.length) {
+      s.matches = updated.matches;
+    }
+    renderCards();
+    // Restore clue value after re-render
+    const inp = document.getElementById(`clue-${id}`);
+    if (inp) { inp.value = clue; inp.classList.toggle('has-value', !!clue); inp.focus(); }
+  } catch(e) {
+    console.error('searchOne error:', e);
+  } finally {
+    const b2 = document.getElementById(`sbtn-${id}`);
+    if (b2) { b2.classList.remove('searching'); b2.disabled = false; }
+  }
+}
+
+async function bulkSearchAgain() {
+  // Use typed clues; if none typed, auto-build clues from bank ref for unmatched lines
+  const items = [];
+  for (const s of DATA.suggestions) {
+    const clue = (clues[s.bl_id] || '').trim();
+    if (clue) {
+      items.push({bl_id:s.bl_id, clue, bl_amt:s.bl_amt,
+        direction: s.bl_amt >= 0 ? 'out_invoice' : 'in_invoice'});
+    } else if (!s.matches.length || s.matches[0].score < 40) {
+      // Auto-clue from partner name or first word of ref
+      const autoClue = (s.bl_partner || s.bl_ref.split(' ').slice(0,3).join(' ')).trim();
+      if (autoClue) items.push({bl_id:s.bl_id, clue:autoClue, bl_amt:s.bl_amt,
+        direction: s.bl_amt >= 0 ? 'out_invoice' : 'in_invoice'});
+    }
+  }
+  if (!items.length) return;
+
+  const btnB = document.getElementById('btn-bulk-search');
+  document.getElementById('bulk-spinner').style.display = 'inline-block';
+  document.getElementById('bulk-icon').style.display    = 'none';
+  if (btnB) btnB.disabled = true;
+  document.getElementById('bar-summary').textContent = `Searching ${items.length} lines in Odoo…`;
+
+  try {
+    const r   = await fetch('/api/search', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({items})
+    });
+    const res = await r.json();
+    let updated = 0;
+    for (const [key, val] of Object.entries(res.results || {})) {
+      if (val.matches && val.matches.length) {
+        const s = DATA.suggestions.find(x => String(x.bl_id) === key);
+        if (s) { s.matches = val.matches; updated++; }
+      }
+    }
+    renderCards();
+    // Restore clue inputs
+    for (const [id, clue] of Object.entries(clues)) {
+      const inp = document.getElementById(`clue-${id}`);
+      if (inp) { inp.value = clue; inp.classList.toggle('has-value', !!clue); }
+    }
+    document.getElementById('bar-summary').textContent =
+      `🔍 ${updated} line${updated !== 1 ? 's' : ''} updated with new matches`;
+  } catch(e) {
+    document.getElementById('bar-summary').textContent = `Search error: ${e.message}`;
+  } finally {
+    document.getElementById('bulk-spinner').style.display = 'none';
+    document.getElementById('bulk-icon').style.display    = '';
+    if (btnB) btnB.disabled = false;
+  }
+}
+
+// ── INVOICE PICKER ────────────────────────────────────────────────────────────
+function togglePicker(id, direction) {
+  const drop = document.getElementById(`pdrop-${id}`);
+  if (!drop) return;
+
+  // Close previously open picker
+  if (openPicker !== null && openPicker !== id) closePicker(openPicker);
+
+  if (drop.classList.contains('open')) {
+    closePicker(id);
+  } else {
+    drop.classList.add('open');
+    openPicker = id;
+    filterPicker(id, '', direction);  // populate full list
+    const srch = document.getElementById(`psearch-${id}`);
+    if (srch) setTimeout(() => srch.focus(), 50);
+  }
+}
+
+function closePicker(id) {
+  const drop = document.getElementById(`pdrop-${id}`);
+  if (drop) drop.classList.remove('open');
+  if (openPicker === id) openPicker = null;
+}
+
+function filterPicker(id, query, direction) {
+  const list = document.getElementById(`plist-${id}`);
+  if (!list || !DATA) return;
+
+  const pool = direction === 'out_invoice'
+    ? (DATA.open_invoices || [])
+    : (DATA.open_bills    || []);
+
+  const q = query.trim().toLowerCase();
+  const hits = pool.filter(inv => {
+    if (!q) return true;
+    const name    = (inv.name    || '').toLowerCase();
+    const partner = (_pname(inv.partner_id) || '').toLowerCase();
+    const ref     = (inv.ref     || '').toLowerCase();
+    const amt     = String(inv.amount_residual || '');
+    return name.includes(q) || partner.includes(q) || ref.includes(q) || amt.includes(q);
+  }).slice(0, 50);
+
+  if (!hits.length) {
+    list.innerHTML = `<div class="picker-empty"><i class="fa-solid fa-magnifying-glass"></i> No invoices found</div>`;
+    return;
+  }
+
+  const cur = manualPicks[id];
+  list.innerHTML = hits.map(inv => {
+    const partner  = _pname(inv.partner_id) || '—';
+    const invName  = inv.name  || '(draft)';
+    const residual = (inv.amount_residual || 0).toLocaleString('nl-BE', {minimumFractionDigits:2});
+    const due      = inv.invoice_date_due || '—';
+    const isActive = cur && cur.inv_id === inv.id ? 'active' : '';
+    return `<div class="picker-item ${isActive}"
+      onclick="selectInvoice('${id}', ${JSON.stringify(JSON.stringify({
+        inv_id:       inv.id,
+        inv_name:     invName,
+        inv_partner:  partner,
+        inv_residual: inv.amount_residual || 0,
+        inv_total:    inv.amount_total    || 0,
+        inv_due:      due,
+        inv_date:     inv.invoice_date    || '',
+        direction:    direction,
+        score:        100,
+        reasons:      ['📌 Manually selected'],
+      }))})">
+      <div>
+        <div class="pi-name">${invName}</div>
+        <div class="pi-partner">${partner}</div>
+      </div>
+      <div>
+        <div class="pi-amt">€${residual}</div>
+        <div class="pi-due">Due: ${due}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectInvoice(id, matchJson) {
+  const match = JSON.parse(matchJson);
+  manualPicks[id] = match;
+  // Also inject as top match so Apply works
+  const s = DATA.suggestions.find(x => String(x.bl_id) === String(id));
+  if (s) {
+    s.matches = [match, ...(s.matches || [])];
+  }
+  closePicker(id);
+  // Set to approved automatically
+  decisions[id] = 'yes';
+  renderCards();
+  // Restore clue
+  const inp = document.getElementById(`clue-${id}`);
+  if (inp && clues[id]) { inp.value = clues[id]; inp.classList.toggle('has-value', !!clues[id]); }
+  updateStats();
+  updateApplyBar();
+}
+
+function clearPicker(id) {
+  delete manualPicks[id];
+  // Remove manual match from suggestions
+  const s = DATA.suggestions.find(x => String(x.bl_id) === String(id));
+  if (s) s.matches = s.matches.filter(m => !m.reasons || !m.reasons.includes('📌 Manually selected'));
+  if (decisions[id] === 'yes') decisions[id] = null;
+  renderCards();
+  const inp = document.getElementById(`clue-${id}`);
+  if (inp && clues[id]) { inp.value = clues[id]; inp.classList.toggle('has-value', !!clues[id]); }
+  updateApplyBar();
+}
+
+// client-side partner name helper for picker
+function _pname(field) {
+  if (Array.isArray(field) && field.length > 1) return field[1];
+  if (Array.isArray(field) && field.length === 1) return field[0];
+  return field ? String(field) : '';
+}
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function odooLineUrl(blId) {
   return `${ODOO_BASE_URL}/odoo/accounting/bank`;
@@ -797,6 +1162,118 @@ const REFRESH_DAYS_JS = {{REFRESH_DAYS}};
 </body>
 </html>
 """
+
+
+# ── CLUE-BASED SEARCH ENGINE ─────────────────────────────────────────────────
+def search_with_clue(odoo: OdooClient, bl_amt: float, clue: str, direction: str) -> list:
+    """
+    Search Odoo for invoices/bills matching a user-supplied clue.
+    Clue can be: partner name, invoice #, structured ref, amount, or free text.
+    Returns a scored list of match dicts (same format as run_matching).
+    """
+    clue = (clue or "").strip()
+    if not clue:
+        return []
+
+    move_type = "out_invoice" if direction == "out_invoice" else "in_invoice"
+    base   = [("move_type","=",move_type),("state","=","posted"),("amount_residual",">",0)]
+    fields = ["id","name","partner_id","invoice_date","invoice_date_due",
+              "amount_total","amount_residual","ref","currency_id"]
+    found  = {}
+
+    # 1 – partner name (ilike = case-insensitive contains)
+    try:
+        for inv in odoo.search_read("account.move",
+                base + [("partner_id.name","ilike",clue)], fields, limit=30):
+            found[inv["id"]] = inv
+    except Exception as e:
+        print(f"[search] partner: {e}")
+
+    # 2 – invoice number
+    try:
+        for inv in odoo.search_read("account.move",
+                base + [("name","ilike",clue)], fields, limit=30):
+            found[inv["id"]] = inv
+    except Exception as e:
+        print(f"[search] name: {e}")
+
+    # 3 – structured reference / communication
+    try:
+        for inv in odoo.search_read("account.move",
+                base + [("ref","ilike",clue)], fields, limit=30):
+            found[inv["id"]] = inv
+    except Exception as e:
+        print(f"[search] ref: {e}")
+
+    # 4 – amount parsed from clue
+    amt_hit = re.search(r"(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+[.,]\d{1,2}|\d{3,})",
+                        clue.replace(",", "."))
+    if amt_hit:
+        try:
+            amt_val = float(re.sub(r"[^\d.]", "", amt_hit.group(1)))
+            for inv in odoo.search_read("account.move",
+                    base + [("amount_residual","=",amt_val)], fields, limit=10):
+                found[inv["id"]] = inv
+        except Exception:
+            pass
+
+    if not found:
+        return []
+
+    bl_abs = abs(bl_amt)
+    best: list = []
+    for inv in found.values():
+        inv_res     = float(inv.get("amount_residual") or 0)
+        inv_total   = float(inv.get("amount_total")    or 0)
+        inv_partner = _pname(inv.get("partner_id"))
+        inv_name    = str(inv.get("name") or "").strip()
+        inv_ref     = str(inv.get("ref")  or "").strip()
+        score   = 0
+        reasons = ["🔍 Clue search"]
+
+        # Amount
+        if abs(bl_abs - inv_res) <= AMOUNT_TOL:
+            score += 60; reasons.append("Exact amount match")
+        elif abs(bl_abs - inv_total) <= AMOUNT_TOL:
+            score += 50; reasons.append("Matches invoice total")
+        elif inv_res > 0 and bl_abs > 0:
+            ratio = bl_abs / inv_res
+            if 0.97 <= ratio <= 1.03:
+                score += 40; reasons.append(f"Near-match ({ratio*100:.1f}%)")
+
+        # Clue similarity to partner
+        sim = _sim(clue, inv_partner)
+        if sim >= 0.7:
+            score += 35; reasons.append(f"Clue ≈ partner ({sim*100:.0f}%)")
+        elif sim >= 0.35:
+            score += 15; reasons.append(f"Partial clue-partner ({sim*100:.0f}%)")
+
+        # Clue in invoice number
+        if clue.lower() in inv_name.lower():
+            score += 30; reasons.append("Clue in invoice #")
+
+        # Clue in ref
+        if clue.lower() in inv_ref.lower():
+            score += 25; reasons.append("Clue in ref")
+
+        # Floor: clue results always show
+        score = max(score, 45)
+
+        best.append({
+            "score":        score,
+            "reasons":      reasons,
+            "inv_id":       inv.get("id"),
+            "inv_name":     inv_name,
+            "inv_partner":  inv_partner,
+            "inv_residual": inv_res,
+            "inv_total":    inv_total,
+            "inv_due":      inv.get("invoice_date_due") or "",
+            "inv_date":     inv.get("invoice_date")     or "",
+            "direction":    direction,
+        })
+
+    best.sort(key=lambda x: -x["score"])
+    return best[:5]
 
 
 # ── HTTP REQUEST HANDLER ──────────────────────────────────────────────────────
@@ -863,6 +1340,24 @@ class Handler(BaseHTTPRequestHandler):
                 for item in items:
                     results[str(item["bl_id"])] = {"ok": False, "error": str(e),
                                                     "odoo_url": f"{ODOO_URL}/odoo/accounting/bank"}
+            self._send(200, json.dumps({"results": results}))
+
+        elif p == "/api/search":
+            payload   = json.loads(body or "{}")
+            items     = payload.get("items", [])   # [{bl_id, clue, bl_amt, direction}]
+            results   = {}
+            try:
+                odoo = OdooClient()
+                for item in items:
+                    bl_id     = item["bl_id"]
+                    clue      = item.get("clue", "").strip()
+                    bl_amt    = float(item.get("bl_amt", 0))
+                    direction = item.get("direction", "out_invoice")
+                    matches   = search_with_clue(odoo, bl_amt, clue, direction)
+                    results[str(bl_id)] = {"matches": matches}
+                    print(f"[search] BL#{bl_id} clue='{clue}' → {len(matches)} results")
+            except Exception as e:
+                print(f"[search] Fatal: {e}")
             self._send(200, json.dumps({"results": results}))
 
         else:
